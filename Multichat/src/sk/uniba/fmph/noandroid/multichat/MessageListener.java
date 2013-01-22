@@ -39,7 +39,7 @@ public class MessageListener extends AsyncTask<String, String, Void> {
 
 	private Context context;
 	private String lastDate = "";
-	public ArrayList<User> users;
+	private ArrayList<User> users;
 	
 	public MessageListener(Context context) {
 		super();
@@ -166,6 +166,10 @@ public class MessageListener extends AsyncTask<String, String, Void> {
 		User u = new User(userID, name, latitude, longitude);
 		users.add(u);
 		return u;
+	}
+	
+	public ArrayList<User> getUsers() {
+		return users;
 	}
 
 }

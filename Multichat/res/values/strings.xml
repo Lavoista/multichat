@@ -7,5 +7,6 @@
     <string name="app_id">127429334090780</string>
     <string name="dummy_welcome">hello</string>
     <string name="sendString">send</string>
+    <string name="mapString">map</string>
 
 </resources>

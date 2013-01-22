@@ -51,6 +51,7 @@ public class MainActivity extends Activity implements OnClickListener, LocationL
 	ArrayAdapter<String> listAdapter;
 	private String userID = "";
 	private MessageSender messageSender;
+	private MessageListener messageListener;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -103,6 +104,8 @@ public class MainActivity extends Activity implements OnClickListener, LocationL
 		
 		Button sendButton = (Button) findViewById(R.id.sendButton);
 		sendButton.setOnClickListener(this);
+		Button mapButton = (Button) findViewById(R.id.mapButton);
+		mapButton.setOnClickListener(this);
 		
 		ListView messageList = (ListView) findViewById(R.id.messageView);
 
@@ -132,6 +135,23 @@ public class MainActivity extends Activity implements OnClickListener, LocationL
 		/*	if (session != null) {
 				session.close();
 			}*/
+		}
+		case R.id.mapButton : {
+			Intent mapIntent = new Intent(MainActivity.this, MapViewActivity.class);
+				
+		//	mapIntent.putExtra("key", value);
+			Bundle b = new Bundle();
+			String[] coords = new String[messageListener.getUsers().size()];
+			int i = 0;
+			for (User u : messageListener.getUsers()) {
+				coords[i] = u.getName() + "#" + u.getLatitude() + "#" + u.getLongitude();
+				i++;
+			}
+			b.putStringArray("coords", coords);
+			mapIntent.putExtras(b);
+			
+			MainActivity.this.startActivity(mapIntent);
+			break;
 		}
 		}
 	}
@@ -199,7 +219,8 @@ public class MainActivity extends Activity implements OnClickListener, LocationL
 	}
 	
 	private void startAsync() {
-		new MessageListener(this).execute();
+		messageListener = new MessageListener(this);
+		messageListener.execute();
 		messageSender = new MessageSender();
 	}
 	
