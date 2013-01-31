@@ -3,26 +3,19 @@ package sk.uniba.fmph.noandroid.multichat;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpParams;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
 import android.content.Context;
@@ -33,11 +26,13 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -54,12 +49,12 @@ public class MainActivity extends Activity implements OnClickListener,
 
 	public Session session;
 	private MessageAdapter messageAdapter;
-	private ArrayList<MessageEntry> messageArray = new ArrayList<MessageEntry>();
 	private HashMap<String, User> users = new HashMap<String, User>();
 	private User user;
 	private MessageListener messageListener;
+	private boolean filtering = false;
 	private static final String DATA_FILE = "data.dat";
-	private static final String SERVICE_KEY = /*"828b251a8cef43be6885f5f2ccc1006d4489db2b"*/"80e777dd58c8378222e0a7196d13314578614244";
+	private static final String SERVICE_KEY = "80e777dd58c8378222e0a7196d13314578614244";
 	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api/";
 	private static final String LAST_TIMESTAMP = "lastTimestamp";
 
@@ -73,11 +68,9 @@ public class MainActivity extends Activity implements OnClickListener,
 		sendButton.setOnClickListener(this);
 
 		ListView messageList = (ListView) findViewById(R.id.messageView);
-
 		registerForContextMenu(messageList);
-
+		
 		messageAdapter = new MessageAdapter(this, R.layout.message_row,	new ArrayList<MessageEntry>());
-
 		messageList.setAdapter(messageAdapter);
 
 		// start Facebook Login
@@ -113,7 +106,7 @@ public class MainActivity extends Activity implements OnClickListener,
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				loadSavedMessages();
+				loadData();
 				startListening();	
 			}
 		}).start();
@@ -121,7 +114,7 @@ public class MainActivity extends Activity implements OnClickListener,
 
 	@Override
 	public void onPause() {
-		saveTasks();
+		saveData();
 
 		super.onPause();
 	}
@@ -131,6 +124,52 @@ public class MainActivity extends Activity implements OnClickListener,
 		loadMessages();
 		
 		super.onResume();
+	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
+		if (view.getId() == R.id.messageView) {
+			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+			menu.setHeaderTitle(messageAdapter.getItem(info.position).toString());
+			String[] menuItems = getResources().getStringArray(R.array.message_options);
+			for (int i = 0; i < menuItems.length; i++) {
+				menu.add(Menu.NONE, i, i, menuItems[i]);
+			}
+		}
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+		int menuItemIndex = item.getItemId();
+
+		switch(menuItemIndex) {
+			case 0:
+				if(!filtering) {
+					messageAdapter.getFilter().filter(messageAdapter.getItem(info.position).getUserID());
+					filtering = true;
+				}
+				else {
+					messageAdapter.getFilter().filter(null);
+					filtering = false;
+				}
+				break;
+			case 1:
+				Intent mapIntent = new Intent(MainActivity.this, MapViewActivity.class);
+
+				Bundle b = new Bundle();
+				String[] coords = new String[1];
+				User u = users.get(messageAdapter.getItem(info.position).getUserID());
+				coords[0] = u.getName() + "#" + u.getLatitude() + "#" + u.getLongitude();
+
+				b.putStringArray("coords", coords);
+				mapIntent.putExtras(b);
+
+				MainActivity.this.startActivity(mapIntent);
+				break;
+		}
+		
+		return true;
 	}
 
 	@Override
@@ -200,8 +239,8 @@ public class MainActivity extends Activity implements OnClickListener,
 			        
 					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 					nameValuePairs.add(new BasicNameValuePair("key", SERVICE_KEY));
-					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", /*lastTimestamp*/"-1"));
-					nameValuePairs.add(new BasicNameValuePair("facebookUserID", user.getID()));
+					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", lastTimestamp));
+					nameValuePairs.add(new BasicNameValuePair("facebookUserID", "-1"));
 					nameValuePairs.add(new BasicNameValuePair("facebookToken", token));
 					nameValuePairs.add(new BasicNameValuePair("messageText", message));
 					if(location != null) {
@@ -209,44 +248,11 @@ public class MainActivity extends Activity implements OnClickListener,
 						nameValuePairs.add(new BasicNameValuePair("longitude", String.valueOf(location.getLongitude())));
 					}
 
-					HttpClient client = new DefaultHttpClient();
+					HttpClient httpclient = new DefaultHttpClient();
 	                HttpPost httppost = new HttpPost(SERVICE_URL);
 	                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, "utf-8"));
 					
-	                HttpEntity httpPostEntity = httppost.getEntity();
-					if (httpPostEntity != null) {
-						String content = EntityUtils.toString(httpPostEntity);
-
-
-							Log.d("Content", content);
-							
-					}
-	                
-	                HttpResponse httpResponse = client.execute(httppost);
-	                
-
-					
-
-					HttpEntity httpEntity = httpResponse.getEntity();
-
-					if (httpEntity != null) {
-						String content = EntityUtils.toString(httpEntity);
-
-						JSONObject messObject = null;
-						try {
-							messObject = new JSONObject(content);
-							String status = messObject.getString("error");
-							System.err.println("Status: " + status);
-//							String messages = messObject.getString("messages");
-//							System.err.println("Messages: " + messages);
-//							String pullTimestamp = messObject.getString("pullTimestamp");
-//							System.err.println("PullTimestamp: " + pullTimestamp);
-						} catch (ParseException e) {
-							e.printStackTrace();
-						} catch (JSONException e) {
-							e.printStackTrace();
-						}
-					}
+	                httpclient.execute(httppost);
 				} catch (ClientProtocolException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -284,7 +290,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	public void showMessage(MessageEntry message) {
-		messageAdapter.add(message);
+		messageAdapter.insert(message, 0);
 	}
 
 	@Override
@@ -330,19 +336,19 @@ public class MainActivity extends Activity implements OnClickListener,
 		}
 	}
 
-	private void saveTasks() {
+	private void saveData() {
 		ObjectOutputStream oos;
 		try {
 			oos = new ObjectOutputStream(openFileOutput(DATA_FILE, Context.MODE_PRIVATE));
 
 			oos.writeObject(users);
 			
-			messageArray.clear();
-
-			for (int i = 0; i < messageAdapter.getCount(); i++) {
-				messageArray.add(messageAdapter.getItem(i));
-			}
-			oos.writeObject(messageArray);
+			messageAdapter.getFilter().filter(null);
+			ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
+			for(int i = 0; i < messageAdapter.getCount(); i++) {
+				messages.add(messageAdapter.getItem(i));
+			}			
+			oos.writeObject(messages);
 			
 			oos.close();
 		} catch (IOException e) {
@@ -351,39 +357,44 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	@SuppressWarnings("unchecked")
-	private void loadSavedMessages() {
+	private void loadData() {
 		ObjectInputStream ois;
 		
-		users.clear();		
-		messageArray.clear();
+		ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
+		users.clear();	
+		
 		try {
 			ois = new ObjectInputStream(openFileInput(DATA_FILE));
 			try {
 				users = (HashMap<String, User>) ois.readObject();
-				messageArray = (ArrayList<MessageEntry>) ois.readObject();
+				messages = (ArrayList<MessageEntry>) ois.readObject();
 			} catch (IOException e) {
 			} catch (ClassNotFoundException e) {
 			}
+			
+			if(messages.size() > 0) {
+				SharedPreferences pref = getPreferences(Context.MODE_PRIVATE);
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+				String lastTimestamp = dateFormat.format(messages.get(0).getTimestamp());
+				pref.edit().putString(LAST_TIMESTAMP, lastTimestamp).apply();
+			}
+			
+			final ArrayList<MessageEntry> messageArray = messages;
+			
+			runOnUiThread(new Runnable() {
+
+				@Override
+				public void run() {
+					messageAdapter.clear();
+					messageAdapter.addAll(messageArray);					
+				}
+				
+			});			
 
 			ois.close();
 		} catch (IOException e) {
 		}
-
-		runOnUiThread(returnRes);
 	}
-
-	private Runnable returnRes = new Runnable() {
-
-		@Override
-		public void run() {
-			if (messageArray != null && messageArray.size() > 0) {
-				messageAdapter.clear();
-				messageAdapter.addAll(messageArray);
-			}
-
-			messageAdapter.notifyDataSetChanged();
-		}
-	};
 
 	public User getUser(String userID) {
 		if(users != null) {

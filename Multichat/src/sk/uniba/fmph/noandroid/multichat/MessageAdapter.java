@@ -9,12 +9,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Filter;
 import android.widget.TextView;
 
 public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 
 	private ArrayList<MessageEntry> messages;
 	private MainActivity context;
+    private Filter filter;
+    private ArrayList<MessageEntry> filteredMessages;
 
 	public MessageAdapter(Context context, int textViewResourceId, ArrayList<MessageEntry> messages) {
 		super(context, textViewResourceId, messages);
@@ -23,9 +26,7 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 	}
 
 	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
-		
-		
+	public View getView(int position, View convertView, ViewGroup parent) {		
 		View v = convertView;
 		if (v == null) {
 			LayoutInflater vi = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -38,7 +39,7 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 			TextView text = (TextView) v.findViewById(R.id.message_text);
 			ResizableImageView avatar = (ResizableImageView) v.findViewById(R.id.message_avatar);
 
-			User u = context.getUser(message.getUser());
+			User u = context.getUser(message.getUserID());
 			
 			DateFormat df = SimpleDateFormat.getDateTimeInstance();
 			timestamp.setText(df.format(message.getTimestamp()));
@@ -53,4 +54,60 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 		}
 		return v;
 	}
+	
+	@Override
+    public Filter getFilter() {
+        if(filter == null) {
+            filter = new UserFilter();
+        }
+        
+        return filter;
+    }
+
+    private class UserFilter extends Filter {
+
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            // NOTE: this function is *always* called from a background thread, and
+            // not the UI thread.
+            FilterResults result = new FilterResults();
+            if(constraint != null && constraint.length() > 0) {
+                ArrayList<MessageEntry> filt = new ArrayList<MessageEntry>();
+                ArrayList<MessageEntry> lItems = new ArrayList<MessageEntry>();
+                synchronized (this) {
+                    lItems.addAll(messages);
+                }
+                for(int i = 0, l = lItems.size(); i < l; i++) {
+                    MessageEntry m = lItems.get(i);
+                    if(m.getUserID().equals(constraint)) {
+                        filt.add(m);
+                    }
+                }
+                result.count = filt.size();
+                result.values = filt;
+            }
+            else {
+                synchronized(this) {
+                    result.values = messages;
+                    result.count = messages.size();
+                }
+            }
+            
+            return result;
+        }
+
+        @SuppressWarnings("unchecked")
+		@Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            // NOTE: this function is *always* called from the UI thread.
+            filteredMessages = (ArrayList<MessageEntry>) results.values;
+            notifyDataSetChanged();
+            clear();
+            for(int i = 0, l = filteredMessages.size(); i < l; i++) {
+                add(filteredMessages.get(i));
+            }
+            
+            notifyDataSetInvalidated();
+        }
+    }
 }

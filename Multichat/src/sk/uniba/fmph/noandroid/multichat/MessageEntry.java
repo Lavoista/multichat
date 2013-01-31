@@ -23,7 +23,7 @@ public class MessageEntry implements Serializable {
 		return timestamp;
 	}
 	
-	public String getUser() {
+	public String getUserID() {
 		return userID;
 	}
 	
@@ -35,7 +35,7 @@ public class MessageEntry implements Serializable {
 		timestamp = t;
 	}
 	
-	public void setUser(String u) {
+	public void setUserID(String u) {
 		userID = u;
 	}
 	

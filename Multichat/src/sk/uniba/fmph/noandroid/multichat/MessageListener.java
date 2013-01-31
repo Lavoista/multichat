@@ -57,6 +57,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 	}
 
 	protected void getMessages() {
+		ArrayList<MessageEntry> messageArray = new ArrayList<MessageEntry>();
 
 		String url = "http://lu-pa.sk/vma2012/api?";
 
@@ -74,7 +75,6 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 			String date = pref.getString(LAST_TIMESTAMP, "-1");
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 			String lastDate = dateFormat.format(new Date());
-			pref.edit().putString(LAST_TIMESTAMP, lastDate).apply();
 			
 			httpParams.add(new BasicNameValuePair("lastPullTimestamp", date));
 			String paramString = URLEncodedUtils.format(httpParams, "utf-8");
@@ -89,9 +89,13 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 				JSONObject messObject = null;
 				try {
 					messObject = new JSONObject(content);
+					System.out.println(content);
 					String status = messObject.getString("status");
 					if (status.equals("success")) {
 						JSONArray messages = messObject.getJSONArray("messages");
+						
+						pref.edit().putString(LAST_TIMESTAMP, lastDate).apply();
+						
 						for (int i = 0; i < messages.length(); i++) {
 							JSONObject message = messages.getJSONObject(i);
 							String userID = String.valueOf(message.getLong("facebookUserID"));
@@ -107,7 +111,11 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 							
 							updateUser(userID, latitude, longitude);
 							MessageEntry messageEntry = new MessageEntry(userID, text, datetime);
-							publishProgress(messageEntry);
+							messageArray.add(0, messageEntry);
+						}
+						
+						for(MessageEntry message : messageArray) {
+							publishProgress(message);
 						}
 					}
 				} catch (ParseException e) {
@@ -124,13 +132,10 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 			e.printStackTrace();
 		}
 	}
-
-	protected void onPostExecute(Void v) {
-	}
 	
 	protected void onProgressUpdate(MessageEntry... messages) {
 		for(final MessageEntry message : messages) {			
-			((MainActivity) context).showMessage(message);				
+			((MainActivity) context).showMessage(message);							
 		}
     }
 
