@@ -46,6 +46,9 @@ public class MapViewActivity extends MapActivity {
 			}
 			double lat = Double.valueOf(values[1]);
 			double lon = Double.valueOf(values[2]);
+			if (lat > 90 || lat < -90 || lon > 180 || lon < -180) {
+				continue; 
+			}
 			GeoPoint friendPoint = new GeoPoint(
 					(int) (lat * 1E6),
 					(int) (lon * 1E6));
