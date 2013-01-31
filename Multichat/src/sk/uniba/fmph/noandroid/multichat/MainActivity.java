@@ -18,6 +18,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipData.Item;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -25,6 +28,8 @@ import android.graphics.Bitmap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -167,6 +172,12 @@ public class MainActivity extends Activity implements OnClickListener,
 
 				MainActivity.this.startActivity(mapIntent);
 				break;
+			case 2:
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE); 
+				if(clipboard != null) {
+					clipboard.setPrimaryClip(ClipData.newPlainText(null, messageAdapter.getItem(info.position).getMessage()));
+				}
+				break;
 		}
 		
 		return true;
@@ -240,7 +251,7 @@ public class MainActivity extends Activity implements OnClickListener,
 					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 					nameValuePairs.add(new BasicNameValuePair("key", SERVICE_KEY));
 					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", lastTimestamp));
-					nameValuePairs.add(new BasicNameValuePair("facebookUserID", "-1"));
+					nameValuePairs.add(new BasicNameValuePair("facebookUserID", user.getID()));
 					nameValuePairs.add(new BasicNameValuePair("facebookToken", token));
 					nameValuePairs.add(new BasicNameValuePair("messageText", message));
 					if(location != null) {
@@ -404,8 +415,24 @@ public class MainActivity extends Activity implements OnClickListener,
 		return null;
 	}
 
-	public void addUser(User u) {
-		u.loadAvatarPicture(this);
+	public void addUser(final User u) {
+		final Activity ctx = this;
+		
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+				AvatarDownloader task  = new AvatarDownloader(ctx);
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+				    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, u.getID());
+				}
+				else {
+				    task.execute(u.getID());	
+				}
+			}
+			
+		});
+		
 		users.put(u.getID(), u);
 	}
 

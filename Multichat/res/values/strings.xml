@@ -12,6 +12,7 @@
 	<string-array name="message_options">
 		<item>Filtruj</item>
 		<item>Zobraz na mape</item>
+		<item>Kopíruj text správy</item>
 	</string-array>
 
 </resources>

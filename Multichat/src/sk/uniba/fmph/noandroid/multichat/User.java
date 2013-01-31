@@ -30,10 +30,6 @@ public class User implements Serializable {
 		this.longitude = longitude;
 	}
 	
-	public void loadAvatarPicture(Context ctx) {
-		new AvatarDownloader(ctx).execute(id);
-	}
-	
 	public String getID() {
 		return id;
 	}

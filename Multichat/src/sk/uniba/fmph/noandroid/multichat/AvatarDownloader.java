@@ -20,7 +20,6 @@ public class AvatarDownloader extends AsyncTask<String, Bitmap, Void> {
 	
 	@Override
 	protected Void doInBackground(String... userIDs) {
-		android.os.Debug.waitForDebugger();
 		for(String userID : userIDs) {
 			this.userID = userID;
 			Bitmap avatar = null;
