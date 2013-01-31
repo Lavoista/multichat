@@ -59,8 +59,8 @@ public class MainActivity extends Activity implements OnClickListener,
 	private User user;
 	private MessageListener messageListener;
 	private static final String DATA_FILE = "data.dat";
-	private static final String SERVICE_KEY = "828b251a8cef43be6885f5f2ccc1006d4489db2b";
-	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api";
+	private static final String SERVICE_KEY = /*"828b251a8cef43be6885f5f2ccc1006d4489db2b"*/"80e777dd58c8378222e0a7196d13314578614244";
+	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api/";
 	private static final String LAST_TIMESTAMP = "lastTimestamp";
 
 	@Override
@@ -188,12 +188,7 @@ public class MainActivity extends Activity implements OnClickListener,
 			
 			@Override
 			public void run() {
-				// Create a new HttpClient and Post Header
-				HttpClient httpclient = new DefaultHttpClient();
-				HttpPost httppost = new HttpPost(SERVICE_URL);
-
 				try {
-					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 					Session session = Session.getActiveSession();
 			        String token = "-1";
 			        if (session != null && session.isOpened()) {
@@ -205,7 +200,7 @@ public class MainActivity extends Activity implements OnClickListener,
 			        
 					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 					nameValuePairs.add(new BasicNameValuePair("key", SERVICE_KEY));
-					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", lastTimestamp));
+					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", /*lastTimestamp*/"-1"));
 					nameValuePairs.add(new BasicNameValuePair("facebookUserID", user.getID()));
 					nameValuePairs.add(new BasicNameValuePair("facebookToken", token));
 					nameValuePairs.add(new BasicNameValuePair("messageText", message));
@@ -215,7 +210,7 @@ public class MainActivity extends Activity implements OnClickListener,
 					}
 
 					HttpClient client = new DefaultHttpClient();
-	                HttpPost post = new HttpPost(SERVICE_URL);
+	                HttpPost httppost = new HttpPost(SERVICE_URL);
 	                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, "utf-8"));
 					
 	                HttpEntity httpPostEntity = httppost.getEntity();
@@ -242,6 +237,10 @@ public class MainActivity extends Activity implements OnClickListener,
 							messObject = new JSONObject(content);
 							String status = messObject.getString("error");
 							System.err.println("Status: " + status);
+//							String messages = messObject.getString("messages");
+//							System.err.println("Messages: " + messages);
+//							String pullTimestamp = messObject.getString("pullTimestamp");
+//							System.err.println("PullTimestamp: " + pullTimestamp);
 						} catch (ParseException e) {
 							e.printStackTrace();
 						} catch (JSONException e) {

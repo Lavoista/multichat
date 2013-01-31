@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 
 
+
 public class User implements Serializable {
 
 	private static final long serialVersionUID = -6051108677105497506L;
