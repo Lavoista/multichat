@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:baselineAligned="false"
+	android:padding="6dip" >
+
+	<sk.uniba.fmph.noandroid.multichat.ResizableImageView
+		android:id="@+id/message_avatar"
+		android:layout_width="80dip"
+		android:layout_height="wrap_content"
+		android:layout_gravity="top"
+		android:layout_marginRight="6dip"
+		android:contentDescription="@string/alt_avatar"
+		android:src="@drawable/com_facebook_profile_default_icon" />
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical" >
+
+		<TextView
+			android:id="@+id/message_timestamp"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:singleLine="true" />
+
+		<TextView
+			android:id="@+id/message_name"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:singleLine="true" />
+
+		<TextView
+			android:id="@+id/message_text"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center_vertical"
+			android:padding="10dp"
+			android:textSize="16sp" />
+	</LinearLayout>
+
+</LinearLayout>

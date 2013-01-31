@@ -24,7 +24,7 @@ public class MapViewActivity extends MapActivity {
 		setContentView(R.layout.activity_map);
 
 		MapView mv = (MapView) findViewById(R.id.mvMain);
-		mv.setSatellite(false);
+		mv.setSatellite(true);
 		mv.setBuiltInZoomControls(true);
 		MapController mc = mv.getController();
 		
