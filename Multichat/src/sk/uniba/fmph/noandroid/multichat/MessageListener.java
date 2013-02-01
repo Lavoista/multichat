@@ -28,6 +28,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.facebook.Session;
 import com.facebook.SessionState;
@@ -49,7 +50,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 				getMessages();
 			}
 			try {
-				Thread.sleep(500);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -104,7 +105,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 							try {
 								datetime = dateFormat.parse(message.getString("timestamp"));
 							} catch (java.text.ParseException e) {
-								e.printStackTrace();
+								Log.d("MessageListener Exception", "ParseException: " + e.getMessage());
 							}
 							double latitude = message.getDouble("lat");
 							double longitude = message.getDouble("lon");
@@ -125,11 +126,11 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 				}
 			}
 		} catch (URISyntaxException e) {
-			e.printStackTrace();
+			Log.d("MessageListener Exception", "URISyntaxException: " + e.getMessage());
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			Log.d("MessageListener Exception", "ClientProtocolException: " + e.getMessage());
 		} catch (IOException e) {
-			e.printStackTrace();
+			Log.d("MessageListener Exception", "IOException: " + e.getMessage());
 		}
 	}
 	

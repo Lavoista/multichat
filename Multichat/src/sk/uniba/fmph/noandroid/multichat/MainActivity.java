@@ -28,6 +28,9 @@ import android.graphics.Bitmap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.opengl.Visibility;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -74,6 +77,11 @@ public class MainActivity extends Activity implements OnClickListener,
 
 		ListView messageList = (ListView) findViewById(R.id.messageView);
 		registerForContextMenu(messageList);
+		
+		if(!isNetworkAvailable()) {
+			sendButton.setVisibility(View.GONE);
+			findViewById(R.id.messageField).setVisibility(View.GONE);
+		}
 		
 		messageAdapter = new MessageAdapter(this, R.layout.message_row,	new ArrayList<MessageEntry>());
 		messageList.setAdapter(messageAdapter);
@@ -295,9 +303,18 @@ public class MainActivity extends Activity implements OnClickListener,
 		return users;
 	}
 
+	private boolean isNetworkAvailable() {
+	    ConnectivityManager connectivityManager 
+	          = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+	    NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+	    return activeNetworkInfo != null;
+	}
+	
 	private void startListening() {
-		messageListener = new MessageListener(this);
-		messageListener.execute();
+		if(isNetworkAvailable()) {		
+			messageListener = new MessageListener(this);
+			messageListener.execute();
+		}
 	}
 
 	public void showMessage(MessageEntry message) {
@@ -348,22 +365,24 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	private void saveData() {
-		ObjectOutputStream oos;
-		try {
-			oos = new ObjectOutputStream(openFileOutput(DATA_FILE, Context.MODE_PRIVATE));
-
-			oos.writeObject(users);
-			
-			messageAdapter.getFilter().filter(null);
-			ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
-			for(int i = 0; i < messageAdapter.getCount(); i++) {
-				messages.add(messageAdapter.getItem(i));
-			}			
-			oos.writeObject(messages);
-			
-			oos.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(messageAdapter.getCount() > 0) {
+			ObjectOutputStream oos;
+			try {
+				oos = new ObjectOutputStream(openFileOutput(DATA_FILE, Context.MODE_PRIVATE));
+	
+				oos.writeObject(users);
+				
+				messageAdapter.getFilter().filter(null);
+				ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
+				for(int i = 0; i < messageAdapter.getCount(); i++) {
+					messages.add(messageAdapter.getItem(i));
+				}			
+				oos.writeObject(messages);
+				
+				oos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -383,12 +402,13 @@ public class MainActivity extends Activity implements OnClickListener,
 			} catch (ClassNotFoundException e) {
 			}
 			
-			if(messages.size() > 0) {
-				SharedPreferences pref = getPreferences(Context.MODE_PRIVATE);
-				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-				String lastTimestamp = dateFormat.format(messages.get(0).getTimestamp());
-				pref.edit().putString(LAST_TIMESTAMP, lastTimestamp).apply();
-			}
+			SharedPreferences pref = getPreferences(Context.MODE_PRIVATE);
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+			String lastTimestamp = "-1";			
+			if(messages.size() > 0) {				
+				lastTimestamp = dateFormat.format(messages.get(0).getTimestamp());
+			}			
+			pref.edit().putString(LAST_TIMESTAMP, lastTimestamp).apply();
 			
 			final ArrayList<MessageEntry> messageArray = messages;
 			
@@ -397,7 +417,8 @@ public class MainActivity extends Activity implements OnClickListener,
 				@Override
 				public void run() {
 					messageAdapter.clear();
-					messageAdapter.addAll(messageArray);					
+					messageAdapter.addAll(messageArray);	
+					messageAdapter.notifyDataSetChanged();
 				}
 				
 			});			
