@@ -15,16 +15,28 @@ import android.widget.TextView;
 public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 
 	private ArrayList<MessageEntry> messages;
+	private ArrayList<MessageEntry> allMessages;
 	private MainActivity context;
     private Filter filter;
     private ArrayList<MessageEntry> filteredMessages;
+    private CharSequence filtering;
 
 	public MessageAdapter(Context context, int textViewResourceId, ArrayList<MessageEntry> messages) {
 		super(context, textViewResourceId, messages);
 		this.messages = messages;
 		this.context = (MainActivity) context;
+		allMessages = new ArrayList<MessageEntry>();
+		filtering = null;
 	}
 
+	@Override
+	public void add(MessageEntry message) {
+		if (filtering == null || message.getUserID().equals(filtering)) {
+			super.add(message);
+		}
+		allMessages.add(message);
+	}
+	
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {		
 		View v = convertView;
@@ -72,6 +84,9 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
             // not the UI thread.
             FilterResults result = new FilterResults();
             if(constraint != null && constraint.length() > 0) {
+            	allMessages.clear();
+            	allMessages.addAll(messages);
+            	filtering = constraint;
                 ArrayList<MessageEntry> filt = new ArrayList<MessageEntry>();
                 ArrayList<MessageEntry> lItems = new ArrayList<MessageEntry>();
                 synchronized (this) {
@@ -88,9 +103,10 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
             }
             else {
                 synchronized(this) {
-                	ArrayList<MessageEntry> all = new ArrayList<MessageEntry>(messages);
+                	ArrayList<MessageEntry> all = new ArrayList<MessageEntry>(allMessages);
                     result.values = all;
                     result.count = messages.size();
+                    filtering = null;
                 }
             }
             
