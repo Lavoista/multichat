@@ -2,7 +2,7 @@
 
 	<item
 		android:id="@+id/menu_show_locations"
-		android:title="@string/mapString">
+		android:title="@string/menu_show_map">
 	</item>
 
 </menu>

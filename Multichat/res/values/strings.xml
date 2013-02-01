@@ -3,9 +3,9 @@
 	<string name="app_name">Multichat</string>
 	<string name="title_activity_main">Multichat</string>
 	<string name="app_id">127429334090780</string>
-	<string name="dummy_welcome">Ahoj</string>
+	<string name="top_offline">OFFLINE</string>
 	<string name="sendString">Odoslať</string>
-	<string name="mapString">Zobraziť na mape</string>
+	<string name="menu_show_map">Zobraziť na mape</string>
 	<string name="alt_avatar">Avatar</string>
 	<string name="hint_new_message">Sem napíš svoju správu</string>
 

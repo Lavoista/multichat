@@ -7,6 +7,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.http.HttpEntity;
@@ -36,6 +37,9 @@ import com.facebook.SessionState;
 public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 
 	private Activity context;
+	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api?";
+	private static final String SERVICE_KEY = "80e777dd58c8378222e0a7196d13314578614244";
+	private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String LAST_TIMESTAMP = "lastTimestamp";
 
 	public MessageListener(Activity context) {
@@ -57,10 +61,9 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 		}
 	}
 
-	protected void getMessages() {
+	protected synchronized void getMessages() {
 		ArrayList<MessageEntry> messageArray = new ArrayList<MessageEntry>();
-
-		String url = "http://lu-pa.sk/vma2012/api?";
+		HashSet<String> userSet = new HashSet<String>();
 
 		// Set up HTTP post
 		try {
@@ -70,16 +73,15 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 
 			HttpGet httpGet = new HttpGet();
 			List<NameValuePair> httpParams = new ArrayList<NameValuePair>();
-			httpParams.add(new BasicNameValuePair("key", "828b251a8cef43be6885f5f2ccc1006d4489db2b"));
+			httpParams.add(new BasicNameValuePair("key", SERVICE_KEY));
 			
 			SharedPreferences pref = context.getPreferences(Context.MODE_PRIVATE);			
 			String date = pref.getString(LAST_TIMESTAMP, "-1");
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-			String lastDate = dateFormat.format(new Date());
+			DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 			
 			httpParams.add(new BasicNameValuePair("lastPullTimestamp", date));
 			String paramString = URLEncodedUtils.format(httpParams, "utf-8");
-			url += paramString;
+			String url = SERVICE_URL + paramString;
 			httpGet.setURI(new URI(url));
 			HttpResponse httpResponse = httpClient.execute(httpGet);
 			HttpEntity httpEntity = httpResponse.getEntity();
@@ -90,12 +92,11 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 				JSONObject messObject = null;
 				try {
 					messObject = new JSONObject(content);
-					System.out.println(content);
 					String status = messObject.getString("status");
 					if (status.equals("success")) {
 						JSONArray messages = messObject.getJSONArray("messages");
 						
-						pref.edit().putString(LAST_TIMESTAMP, lastDate).apply();
+						pref.edit().putString(LAST_TIMESTAMP, messObject.getString("pullTimestamp")).apply();
 						
 						for (int i = 0; i < messages.length(); i++) {
 							JSONObject message = messages.getJSONObject(i);
@@ -110,7 +111,12 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 							double latitude = message.getDouble("lat");
 							double longitude = message.getDouble("lon");
 							
+
 							updateUser(userID, latitude, longitude);
+							if (((MainActivity) context).getUser(userID).getAvatar() == null) {
+								userSet.add(userID);
+							}
+							
 							MessageEntry messageEntry = new MessageEntry(userID, text, datetime);
 							messageArray.add(0, messageEntry);
 						}
@@ -118,6 +124,15 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 						for(MessageEntry message : messageArray) {
 							publishProgress(message);
 						}
+						
+						final String[] userIds = userSet.toArray(new String[userSet.size()]);
+						
+						((MainActivity) context).runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								((MainActivity) context).loadUserAvatars(userIds);
+							}
+						});	
 					}
 				} catch (ParseException e) {
 					e.printStackTrace();
@@ -182,15 +197,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 				System.err.print(e);
 			}
 	
-			final User u = new User(userID, name, latitude, longitude);
-							
-			((MainActivity) context).runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					((MainActivity) context).addUser(u);
-				}
-			});
-								
+			((MainActivity) context).addUser(new User(userID, name, latitude, longitude));							
 		}
 	}
 

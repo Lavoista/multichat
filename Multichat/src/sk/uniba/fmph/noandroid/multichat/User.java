@@ -106,5 +106,4 @@ public class User implements Serializable {
 	public void setAvatar(Bitmap a) {
 		this.avatar = a;
 	}
-
 }

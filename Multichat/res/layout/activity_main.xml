@@ -29,16 +29,16 @@
 		android:layout_height="wrap_content"
 		android:layout_above="@+id/messageField"
 		android:layout_alignParentLeft="true"
-		android:layout_below="@+id/welcome" >
+		android:layout_below="@+id/textTop" >
 	</ListView>
 
 	<TextView
-		android:id="@+id/welcome"
+		android:id="@+id/textTop"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_alignParentTop="true"
 		android:layout_centerHorizontal="true"
-		android:text="@string/dummy_welcome"
+		android:text="@string/top_offline"
 		android:textAppearance="?android:attr/textAppearanceLarge" />
 
 </RelativeLayout>

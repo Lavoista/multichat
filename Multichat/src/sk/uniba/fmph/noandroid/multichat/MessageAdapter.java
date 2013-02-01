@@ -127,4 +127,8 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
             notifyDataSetInvalidated();
         }
     }
+    
+    public boolean isFiltered() {
+    	return filtering != null;
+    }
 }

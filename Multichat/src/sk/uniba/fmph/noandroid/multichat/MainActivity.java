@@ -19,7 +19,6 @@ import org.apache.http.message.BasicNameValuePair;
 
 import android.app.Activity;
 import android.content.ClipData;
-import android.content.ClipData.Item;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -30,15 +29,13 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.opengl.Visibility;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -61,10 +58,10 @@ public class MainActivity extends Activity implements OnClickListener,
 	private HashMap<String, User> users = new HashMap<String, User>();
 	private User user;
 	private MessageListener messageListener;
-	private boolean filtering = false;
 	private static final String DATA_FILE = "data.dat";
 	private static final String SERVICE_KEY = "80e777dd58c8378222e0a7196d13314578614244";
 	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api/";
+	private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String LAST_TIMESTAMP = "lastTimestamp";
 
 	@Override
@@ -73,45 +70,48 @@ public class MainActivity extends Activity implements OnClickListener,
 
 		setContentView(R.layout.activity_main);
 		
-		Button sendButton = (Button) findViewById(R.id.sendButton);
+		final TextView textTop = (TextView) findViewById(R.id.textTop);
+		
+		final Button sendButton = (Button) findViewById(R.id.sendButton);
 		sendButton.setOnClickListener(this);
 
-		ListView messageList = (ListView) findViewById(R.id.messageView);
+		final ListView messageList = (ListView) findViewById(R.id.messageView);
 		registerForContextMenu(messageList);
-		
-		if(!isNetworkAvailable()) {
-			sendButton.setVisibility(View.GONE);
-			findViewById(R.id.messageField).setVisibility(View.GONE);
-		}
 		
 		messageAdapter = new MessageAdapter(this, R.layout.message_row,	new ArrayList<MessageEntry>());
 		messageList.setAdapter(messageAdapter);
 
-		// start Facebook Login
-		Session.openActiveSession(this, true, new Session.StatusCallback() {
-
-			// callback when session changes state
-			@Override
-			public void call(Session sess, SessionState state, Exception exception) {
-				if (sess.isOpened()) {
-					session = sess;
-
-					// make request to the /me API
-					Request.executeMeRequestAsync(sess,	new Request.GraphUserCallback() {
-						// callback after Graph API response with user
-						// object
-						@Override
-						public void onCompleted(GraphUser gUser, Response response) {
-							if (gUser != null) {
-								TextView welcome = (TextView) findViewById(R.id.welcome);
-								welcome.setText(getResources().getString(R.string.dummy_welcome) + " " + gUser.getName() + "!");
-								user = new User(gUser.getId(), gUser.getName());
+		if(!isNetworkAvailable()) {
+			sendButton.setVisibility(View.GONE);
+			findViewById(R.id.messageField).setVisibility(View.GONE);
+		}
+		else {		
+			// start Facebook Login
+			Session.openActiveSession(this, true, new Session.StatusCallback() {
+	
+				// callback when session changes state
+				@Override
+				public void call(Session sess, SessionState state, Exception exception) {
+					if (sess.isOpened()) {
+						session = sess;
+	
+						// make request to the /me API
+						Request.executeMeRequestAsync(sess,	new Request.GraphUserCallback() {
+							// callback after Graph API response with user
+							// object
+							@Override
+							public void onCompleted(GraphUser gUser, Response response) {
+								if (gUser != null) {
+									
+									textTop.setText(gUser.getName());
+									user = new User(gUser.getId(), gUser.getName());
+								}
 							}
-						}
-					});
+						});
+					}
 				}
-			}
-		});
+			});
+		}
 		
 		loadMessages();			
 	}
@@ -144,7 +144,10 @@ public class MainActivity extends Activity implements OnClickListener,
 	public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
 		if (view.getId() == R.id.messageView) {
 			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-			menu.setHeaderTitle(messageAdapter.getItem(info.position).toString());
+			
+			User u = users.get(((MessageEntry) messageAdapter.getItem(info.position)).getUserID());
+			
+			menu.setHeaderTitle(u.getName());
 			String[] menuItems = getResources().getStringArray(R.array.message_options);
 			for (int i = 0; i < menuItems.length; i++) {
 				menu.add(Menu.NONE, i, i, menuItems[i]);
@@ -159,13 +162,11 @@ public class MainActivity extends Activity implements OnClickListener,
 
 		switch(menuItemIndex) {
 			case 0:
-				if(!filtering) {
+				if(!messageAdapter.isFiltered()) {
 					messageAdapter.getFilter().filter(messageAdapter.getItem(info.position).getUserID());
-					filtering = true;
 				}
 				else {
-					messageAdapter.getFilter().filter(null);
-					filtering = false;
+					messageAdapter.getFilter().filter("");
 				}
 				break;
 			case 1:
@@ -305,8 +306,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	private boolean isNetworkAvailable() {
-	    ConnectivityManager connectivityManager 
-	          = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+	    ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 	    NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
 	    return activeNetworkInfo != null;
 	}
@@ -314,7 +314,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	private void startListening() {
 		if(isNetworkAvailable()) {		
 			messageListener = new MessageListener(this);
-			messageListener.execute();
+			messageListener.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 		}
 	}
 
@@ -404,7 +404,7 @@ public class MainActivity extends Activity implements OnClickListener,
 			}
 			
 			SharedPreferences pref = getPreferences(Context.MODE_PRIVATE);
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+			DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 			String lastTimestamp = "-1";			
 			if(messages.size() > 0) {				
 				lastTimestamp = dateFormat.format(messages.get(0).getTimestamp());
@@ -437,24 +437,20 @@ public class MainActivity extends Activity implements OnClickListener,
 		return null;
 	}
 
-	public void addUser(final User u) {
+	public void loadUserAvatars(final String[] userIds) {
 		final Activity ctx = this;
 		
 		runOnUiThread(new Runnable() {
 
 			@Override
-			public void run() {
-				AvatarDownloader task  = new AvatarDownloader(ctx);
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-				    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, u.getID());
-				}
-				else {
-				    task.execute(u.getID());	
-				}
+			public void run() {				
+				new AvatarDownloader(ctx).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, userIds);
 			}
 			
 		});
-		
+	}
+	
+	public void addUser(final User u) {		
 		users.put(u.getID(), u);
 	}
 
