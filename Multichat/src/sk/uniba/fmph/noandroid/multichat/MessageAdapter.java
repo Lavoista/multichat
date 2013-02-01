@@ -88,7 +88,8 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
             }
             else {
                 synchronized(this) {
-                    result.values = messages;
+                	ArrayList<MessageEntry> all = new ArrayList<MessageEntry>(messages);
+                    result.values = all;
                     result.count = messages.size();
                 }
             }
