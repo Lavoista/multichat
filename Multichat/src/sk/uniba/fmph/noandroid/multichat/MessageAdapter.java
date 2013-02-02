@@ -131,4 +131,8 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
     public boolean isFiltered() {
     	return filtering != null;
     }
+    
+    public ArrayList<MessageEntry> getAllMessages() {
+    	return allMessages;
+    }
 }

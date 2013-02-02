@@ -34,6 +34,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
@@ -168,9 +169,11 @@ public class MainActivity extends Activity implements OnClickListener,
 		
 		switch(menuItemIndex) {
 			case 0:
+				// filter
 				messageAdapter.getFilter().filter(messageAdapter.getItem(info.position).getUserID());
 				break;
 			case 1:
+				// show on map
 				Intent mapIntent = new Intent(MainActivity.this, MapViewActivity.class);
 
 				Bundle b = new Bundle();
@@ -183,6 +186,7 @@ public class MainActivity extends Activity implements OnClickListener,
 				MainActivity.this.startActivity(mapIntent);
 				break;
 			case 2:
+				// open profile
 				if(!u.getID().equals("0")) {
 					Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.facebook.com/profile.php?id=" + u.getID()));
 					startActivity(browserIntent);
@@ -193,6 +197,7 @@ public class MainActivity extends Activity implements OnClickListener,
 				}
 				break;
 			case 3:
+				// copy to clipboard
 				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE); 
 				if(clipboard != null) {
 					clipboard.setPrimaryClip(ClipData.newPlainText(null, messageAdapter.getItem(info.position).getMessage()));
@@ -274,7 +279,7 @@ public class MainActivity extends Activity implements OnClickListener,
 					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 					nameValuePairs.add(new BasicNameValuePair("key", SERVICE_KEY));
 					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", lastTimestamp));
-					nameValuePairs.add(new BasicNameValuePair("facebookUserID", user.getID()));
+					nameValuePairs.add(new BasicNameValuePair("facebookUserID", "-1"));
 					nameValuePairs.add(new BasicNameValuePair("facebookToken", token));
 					nameValuePairs.add(new BasicNameValuePair("messageText", message));
 					if(location != null) {
@@ -288,11 +293,9 @@ public class MainActivity extends Activity implements OnClickListener,
 					
 	                httpclient.execute(httppost);
 				} catch (ClientProtocolException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Log.d("MainActivity sendMessage Exception", "ClientProtocolException: " + e.getMessage());
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Log.d("MainActivity sendMessage Exception", "IOException: " + e.getMessage());
 				}
 			}
 		}).start();
@@ -340,11 +343,11 @@ public class MainActivity extends Activity implements OnClickListener,
 					new MessageListener(ctx).execute();						
 				}
 				
-			}, 0, 500);			
+			}, 0, 1000);			
 		}
 	}
 
-	public void showMessage(MessageEntry message) {
+	public synchronized void showMessage(MessageEntry message) {
 		messageAdapter.insert(message, 0);
 	}
 
@@ -410,7 +413,7 @@ public class MainActivity extends Activity implements OnClickListener,
 				
 				oos.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				Log.d("MainActivity saveData Exception", "IOException: " + e.getMessage());
 			}
 		}
 	}
@@ -454,6 +457,7 @@ public class MainActivity extends Activity implements OnClickListener,
 
 			ois.close();
 		} catch (IOException e) {
+			Log.d("MainActivity loadData Exception", "IOException: " + e.getMessage());
 		}
 	}
 

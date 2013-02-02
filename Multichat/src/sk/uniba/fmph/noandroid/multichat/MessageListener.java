@@ -30,11 +30,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.Toast;
 
-import com.facebook.Session;
-import com.facebook.SessionState;
-
-public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
+public class MessageListener extends AsyncTask<Void, MessageEntry, Boolean> {
 
 	private Activity context;
 	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api?";
@@ -48,7 +46,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 	}
 
 	@Override
-	protected Void doInBackground(Void... params) {
+	protected Boolean doInBackground(Void... params) {
 		ArrayList<MessageEntry> messageArray = new ArrayList<MessageEntry>();
 		HashSet<String> userSet = new HashSet<String>();
 
@@ -84,47 +82,51 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 						
 						pref.edit().putString(LAST_TIMESTAMP, messObject.getString("pullTimestamp")).apply();
 						
-						for (int i = 0; i < messages.length(); i++) {
-							JSONObject message = messages.getJSONObject(i);
-							String userID = String.valueOf(message.getLong("facebookUserID"));
-							String text = message.getString("messageText");
-							DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
-							Date datetime = null;
-							try {
-								datetime = dateFormat.parse(message.getString("timestamp"));
-							} catch (java.text.ParseException e) {
-								Log.d("MessageListener Exception", "ParseException: " + e.getMessage());
+						if(messages.length() > 0) {						
+							for (int i = 0; i < messages.length(); i++) {
+								JSONObject message = messages.getJSONObject(i);
+								String userID = String.valueOf(message.getLong("facebookUserID"));
+								String text = message.getString("messageText");
+								DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+								Date datetime = null;
+								try {
+									datetime = dateFormat.parse(message.getString("timestamp"));
+								} catch (java.text.ParseException e) {
+									Log.d("MessageListener Exception", "ParseException: " + e.getMessage());
+								}
+								double latitude = message.getDouble("lat");
+								double longitude = message.getDouble("lon");
+								
+	
+								updateUser(userID, latitude, longitude);
+								if (((MainActivity) context).getUser(userID).getAvatar() == null) {
+									userSet.add(userID);
+								}
+								
+								MessageEntry messageEntry = new MessageEntry(userID, text, datetime, latitude, longitude);
+								messageArray.add(0, messageEntry);
 							}
-							double latitude = message.getDouble("lat");
-							double longitude = message.getDouble("lon");
 							
-
-							updateUser(userID, latitude, longitude);
-							if (((MainActivity) context).getUser(userID).getAvatar() == null) {
-								userSet.add(userID);
+							for(MessageEntry message : messageArray) {
+								publishProgress(message);
 							}
 							
-							MessageEntry messageEntry = new MessageEntry(userID, text, datetime, latitude, longitude);
-							messageArray.add(0, messageEntry);
+							final String[] userIds = userSet.toArray(new String[userSet.size()]);
+							
+							((MainActivity) context).runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									((MainActivity) context).loadUserAvatars(userIds);
+								}
+							});
+							
+							return true;
 						}
-						
-						for(MessageEntry message : messageArray) {
-							publishProgress(message);
-						}
-						
-						final String[] userIds = userSet.toArray(new String[userSet.size()]);
-						
-						((MainActivity) context).runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
-								((MainActivity) context).loadUserAvatars(userIds);
-							}
-						});	
 					}
 				} catch (ParseException e) {
-					e.printStackTrace();
+					Log.d("MessageListener Exception", "ParseException: " + e.getMessage());
 				} catch (JSONException e) {
-					e.printStackTrace();
+					Log.d("MessageListener Exception", "JSONException: " + e.getMessage());
 				}
 			}
 		} catch (URISyntaxException e) {
@@ -135,11 +137,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 			Log.d("MessageListener Exception", "IOException: " + e.getMessage());
 		}
 		
-		return null;
-	}
-
-	protected synchronized void getMessages() {
-		
+		return false;
 	}
 	
 	protected void onProgressUpdate(MessageEntry... messages) {
@@ -147,6 +145,21 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 			((MainActivity) context).showMessage(message);							
 		}
     }
+	
+	@Override
+	protected void onPostExecute(Boolean result) {
+		if(result) {
+			((MainActivity) context).runOnUiThread(new Runnable() {
+	
+				@Override
+				public void run() {
+					Toast toast = Toast.makeText(context, R.string.toast_new_messages, Toast.LENGTH_SHORT);
+					toast.show();
+				}
+				
+			});
+		}
+	}
 
 	private void updateUser(final String userID, final double latitude, final double longitude) {
 		if (((MainActivity) context).getUser(userID) != null) {
@@ -179,15 +192,15 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 					}
 				}
 			} catch (URISyntaxException e) {
-				e.printStackTrace();
+				Log.d("MessageListener Exception", "URISyntaxException: " + e.getMessage());
 			} catch (ClientProtocolException e) {
-				e.printStackTrace();
+				Log.d("MessageListener Exception", "ClientProtocolException: " + e.getMessage());
 			} catch (IOException e) {
-				e.printStackTrace();
+				Log.d("MessageListener Exception", "IOException: " + e.getMessage());
 			} catch (JSONException e) {
-				e.printStackTrace();
+				Log.d("MessageListener Exception", "JSONException: " + e.getMessage());
 			} catch (Exception e) {
-				System.err.print(e);
+				Log.d("MessageListener Exception", "Exception: " + e.getMessage());
 			}
 	
 			((MainActivity) context).addUser(new User(userID, name, latitude, longitude));							

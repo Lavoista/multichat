@@ -11,6 +11,7 @@
 	<string name="hint_new_message">Sem napíš svoju správu</string>
 	<string name="toast_text_in_clipboard">Text bol skopírovaný do schránky</string>
 	<string name="toast_no_profile">Osoba nemá profil</string>
+	<string name="toast_new_messages">Nové správy prijaté</string>
 
 	<string-array name="message_options">
 		<item>Filtruj podľa osoby</item>
