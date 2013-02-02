@@ -49,19 +49,6 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 
 	@Override
 	protected Void doInBackground(Void... params) {
-		while (true) {
-			if (Session.getActiveSession().getState().equals(SessionState.OPENED)) {
-				getMessages();
-			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	protected synchronized void getMessages() {
 		ArrayList<MessageEntry> messageArray = new ArrayList<MessageEntry>();
 		HashSet<String> userSet = new HashSet<String>();
 
@@ -77,7 +64,6 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 			
 			SharedPreferences pref = context.getPreferences(Context.MODE_PRIVATE);			
 			String date = pref.getString(LAST_TIMESTAMP, "-1");
-			DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 			
 			httpParams.add(new BasicNameValuePair("lastPullTimestamp", date));
 			String paramString = URLEncodedUtils.format(httpParams, "utf-8");
@@ -102,6 +88,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 							JSONObject message = messages.getJSONObject(i);
 							String userID = String.valueOf(message.getLong("facebookUserID"));
 							String text = message.getString("messageText");
+							DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 							Date datetime = null;
 							try {
 								datetime = dateFormat.parse(message.getString("timestamp"));
@@ -117,7 +104,7 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 								userSet.add(userID);
 							}
 							
-							MessageEntry messageEntry = new MessageEntry(userID, text, datetime);
+							MessageEntry messageEntry = new MessageEntry(userID, text, datetime, latitude, longitude);
 							messageArray.add(0, messageEntry);
 						}
 						
@@ -147,6 +134,12 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Void> {
 		} catch (IOException e) {
 			Log.d("MessageListener Exception", "IOException: " + e.getMessage());
 		}
+		
+		return null;
+	}
+
+	protected synchronized void getMessages() {
+		
 	}
 	
 	protected void onProgressUpdate(MessageEntry... messages) {

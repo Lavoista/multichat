@@ -38,7 +38,7 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentTop="true"
 		android:layout_centerHorizontal="true"
-		android:text="@string/top_offline"
+		android:text="@string/top_not_logged"
 		android:textAppearance="?android:attr/textAppearanceLarge" />
 
 </RelativeLayout>

@@ -8,6 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -29,6 +31,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.ContextMenu;
@@ -40,9 +43,9 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Filter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.facebook.Request;
 import com.facebook.Response;
@@ -57,7 +60,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	private MessageAdapter messageAdapter;
 	private HashMap<String, User> users = new HashMap<String, User>();
 	private User user;
-	private MessageListener messageListener;
+	private Timer messageDownloadTimer;
 	private static final String DATA_FILE = "data.dat";
 	private static final String SERVICE_KEY = "80e777dd58c8378222e0a7196d13314578614244";
 	private static final String SERVICE_URL = "http://lu-pa.sk/vma2012/api/";
@@ -160,22 +163,19 @@ public class MainActivity extends Activity implements OnClickListener,
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
 		int menuItemIndex = item.getItemId();
 
+		MessageEntry m = messageAdapter.getItem(info.position);
+		User u = users.get(m.getUserID());
+		
 		switch(menuItemIndex) {
 			case 0:
-				if(!messageAdapter.isFiltered()) {
-					messageAdapter.getFilter().filter(messageAdapter.getItem(info.position).getUserID());
-				}
-				else {
-					messageAdapter.getFilter().filter("");
-				}
+				messageAdapter.getFilter().filter(messageAdapter.getItem(info.position).getUserID());
 				break;
 			case 1:
 				Intent mapIntent = new Intent(MainActivity.this, MapViewActivity.class);
 
 				Bundle b = new Bundle();
 				String[] coords = new String[1];
-				User u = users.get(messageAdapter.getItem(info.position).getUserID());
-				coords[0] = u.getName() + "#" + u.getLatitude() + "#" + u.getLongitude();
+				coords[0] = u.getName() + "#" + m.getLatitude() + "#" + m.getLongitude();
 
 				b.putStringArray("coords", coords);
 				mapIntent.putExtras(b);
@@ -183,9 +183,22 @@ public class MainActivity extends Activity implements OnClickListener,
 				MainActivity.this.startActivity(mapIntent);
 				break;
 			case 2:
+				if(!u.getID().equals("0")) {
+					Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.facebook.com/profile.php?id=" + u.getID()));
+					startActivity(browserIntent);
+				}
+				else {
+					Toast toast = Toast.makeText(this, R.string.toast_no_profile, Toast.LENGTH_SHORT);
+					toast.show();
+				}
+				break;
+			case 3:
 				ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE); 
 				if(clipboard != null) {
 					clipboard.setPrimaryClip(ClipData.newPlainText(null, messageAdapter.getItem(info.position).getMessage()));
+					
+					Toast toast = Toast.makeText(this, R.string.toast_text_in_clipboard, Toast.LENGTH_LONG);
+					toast.show();
 				}
 				break;
 		}
@@ -312,9 +325,22 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 	
 	private void startListening() {
-		if(isNetworkAvailable()) {		
-			messageListener = new MessageListener(this);
-			messageListener.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+		final Activity ctx = this;
+		
+		if(isNetworkAvailable() && Session.getActiveSession().getState().equals(SessionState.OPENED)) {		
+			if(messageDownloadTimer != null) {
+				messageDownloadTimer.cancel();
+			}		
+			
+			messageDownloadTimer = new Timer();
+			messageDownloadTimer.schedule(new TimerTask() {
+
+				@Override
+				public void run() {
+					new MessageListener(ctx).execute();						
+				}
+				
+			}, 0, 500);			
 		}
 	}
 
@@ -360,6 +386,9 @@ public class MainActivity extends Activity implements OnClickListener,
 		case R.id.menu_show_locations:
 			showMap();
 			return true;
+		case R.id.menu_no_filter:
+			messageAdapter.getFilter().filter("");
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -373,7 +402,6 @@ public class MainActivity extends Activity implements OnClickListener,
 	
 				oos.writeObject(users);
 				
-				messageAdapter.getFilter().filter(null);
 				ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
 				for(int i = 0; i < messageAdapter.getCount(); i++) {
 					messages.add(messageAdapter.getItem(i));

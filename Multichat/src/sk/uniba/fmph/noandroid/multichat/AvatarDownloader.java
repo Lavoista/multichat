@@ -8,11 +8,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 
-
-public class AvatarDownloader extends AsyncTask<String, Bitmap, Void> {
+public class AvatarDownloader extends AsyncTask<String, AvatarRecord, Void> {
 
 	private MainActivity context;
-	private String userID;
 	
 	AvatarDownloader(Context context) {
 		this.context = (MainActivity) context;
@@ -21,7 +19,6 @@ public class AvatarDownloader extends AsyncTask<String, Bitmap, Void> {
 	@Override
 	protected Void doInBackground(String... userIDs) {
 		for(String userID : userIDs) {
-			this.userID = userID;
 			Bitmap avatar = null;
 		
 			try {
@@ -31,16 +28,16 @@ public class AvatarDownloader extends AsyncTask<String, Bitmap, Void> {
 			} catch (IOException e) {
 			}
 			
-			publishProgress(avatar);
+			publishProgress(new AvatarRecord(userID, avatar));
 		}
 		
 		return null;
 	}
 	
 	@Override
-	protected void onProgressUpdate(Bitmap... avatars) {
-		for(Bitmap avatar : avatars) {
-			context.updateUserAvatar(userID, avatar);
+	protected void onProgressUpdate(AvatarRecord... avatarRecords) {
+		for(AvatarRecord ar : avatarRecords) {
+			context.updateUserAvatar(ar.userID, ar.avatar);
 		}
 	}
 

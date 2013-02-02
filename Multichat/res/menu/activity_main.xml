@@ -4,5 +4,9 @@
 		android:id="@+id/menu_show_locations"
 		android:title="@string/menu_show_map">
 	</item>
+	<item
+		android:id="@+id/menu_no_filter"
+		android:title="@string/menu_no_filter">
+	</item>
 
 </menu>

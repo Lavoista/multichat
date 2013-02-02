@@ -3,15 +3,19 @@
 	<string name="app_name">Multichat</string>
 	<string name="title_activity_main">Multichat</string>
 	<string name="app_id">127429334090780</string>
-	<string name="top_offline">OFFLINE</string>
+	<string name="top_not_logged">NEPRIHLÁSENÝ</string>
 	<string name="sendString">Odoslať</string>
 	<string name="menu_show_map">Zobraziť na mape</string>
+	<string name="menu_no_filter">Zrušiť filtrovanie správ</string>
 	<string name="alt_avatar">Avatar</string>
 	<string name="hint_new_message">Sem napíš svoju správu</string>
+	<string name="toast_text_in_clipboard">Text bol skopírovaný do schránky</string>
+	<string name="toast_no_profile">Osoba nemá profil</string>
 
 	<string-array name="message_options">
-		<item>Filtruj</item>
+		<item>Filtruj podľa osoby</item>
 		<item>Zobraz na mape</item>
+		<item>Otvor profil</item>
 		<item>Kopíruj text správy</item>
 	</string-array>
 
