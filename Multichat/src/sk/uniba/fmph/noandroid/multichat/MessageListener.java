@@ -80,9 +80,9 @@ public class MessageListener extends AsyncTask<Void, MessageEntry, Boolean> {
 					if (status.equals("success")) {
 						JSONArray messages = messObject.getJSONArray("messages");
 						
-						pref.edit().putString(LAST_TIMESTAMP, messObject.getString("pullTimestamp")).apply();
-						
-						if(messages.length() > 0) {						
+						if(messages.length() > 0) {		
+							pref.edit().putString(LAST_TIMESTAMP, messObject.getString("pullTimestamp")).apply();
+							
 							for (int i = 0; i < messages.length(); i++) {
 								JSONObject message = messages.getJSONObject(i);
 								String userID = String.valueOf(message.getLong("facebookUserID"));

@@ -279,7 +279,7 @@ public class MainActivity extends Activity implements OnClickListener,
 					List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 					nameValuePairs.add(new BasicNameValuePair("key", SERVICE_KEY));
 					nameValuePairs.add(new BasicNameValuePair("lastPullTimestamp", lastTimestamp));
-					nameValuePairs.add(new BasicNameValuePair("facebookUserID", "-1"));
+					nameValuePairs.add(new BasicNameValuePair("facebookUserID", user.getID()));
 					nameValuePairs.add(new BasicNameValuePair("facebookToken", token));
 					nameValuePairs.add(new BasicNameValuePair("messageText", message));
 					if(location != null) {
@@ -405,6 +405,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	
 				oos.writeObject(users);
 				
+				messageAdapter.getFilter().filter("");
 				ArrayList<MessageEntry> messages = new ArrayList<MessageEntry>();
 				for(int i = 0; i < messageAdapter.getCount(); i++) {
 					messages.add(messageAdapter.getItem(i));

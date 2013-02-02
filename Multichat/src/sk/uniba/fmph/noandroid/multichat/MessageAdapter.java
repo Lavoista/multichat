@@ -30,11 +30,11 @@ public class MessageAdapter extends ArrayAdapter<MessageEntry> {
 	}
 
 	@Override
-	public void add(MessageEntry message) {
+	public void insert(MessageEntry message, int position) {
 		if (filtering == null || message.getUserID().equals(filtering)) {
-			super.add(message);
+			super.insert(message, position);
 		}
-		allMessages.add(message);
+		allMessages.add(position, message);
 	}
 	
 	@Override
